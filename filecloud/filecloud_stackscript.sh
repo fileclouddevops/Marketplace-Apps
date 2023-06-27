@@ -27,21 +27,19 @@ source <ssinclude StackScriptID=401712>
 set pipefail -o
 exec > >(tee /dev/ttyS0 /var/log/stackscript.log) 2>&1
 
-# Download FileCloud silent installer script
-curl -L -o /tmp/fc-silent.sh https://patch.codelathe.com/tonidocloud/live/installer/fc-silent.sh
-
-# Remove lines to avoid upgrade of packages on Debian/Ubuntu
-sed -i -e 's/apt-get upgrade/apt-get update/g' /tmp/fc-silent.sh
-
-# Enable execute permission for the script
-chmod +x /tmp/fc-silent.sh
-
 # Allow traffic on ports 80 and 443
 ufw allow 80
 ufw allow 443
 
-# Execute the installer script
-bash /tmp/fc-silent.sh
+# Installing Filecloud and Prequisites
+wget -qO -  https://repo.filecloudlabs.com/static/pgp/filecloud.asc  | sudo apt-key add -
+wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
+echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.4.list
+echo "deb [ arch=amd64 ] https://repo.filecloudlabs.com/apt/ubuntu focal/filecloud/22.1 main" | sudo tee /etc/apt/sources.list.d/filecloud.list
+apt-get update -y
+apt-get install apache2 mongodb-org -y
+apt install -y --no-install-recommends php8.1*
+ACCEPT_EULA=Y  apt-get install filecloud -y
 
 if [[ "$SSL" == "Yes" ]]; then
     certbot_ssl "$FQDN" "$SOA_EMAIL_ADDRESS" 'apache'
